@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd  # <--- Thêm thư viện này để đọc file CSV
 import joblib
 import time
-from tensorflow.keras.models import load_model
+from keras.models import load_model
 from src.utils import *
 
 # --- CẤU HÌNH MỨC ĐỘ NGUY HIỂM ---
@@ -61,7 +61,7 @@ class AlertSystem:
     def _trigger_alert(self, attack_name, score):
         # 1. Nếu là người thường -> Bỏ qua
         if attack_name == "BENIGN":
-            print(f"✅ Normal Traffic (Score: {score:.2f})")
+            print(f"Normal Traffic (Score: {score:.2f})")
             return
 
         # 2. Lấy độ nghiêm trọng từ từ điển (Mặc định là LOW nếu không tìm thấy)
@@ -70,47 +70,60 @@ class AlertSystem:
         # 3. Logic Cảnh báo Ưu tiên kết hợp (Severity + Score)
         # TH1: Tấn công RẤT NGUY HIỂM và AI khá tự tin (> 70%) -> BÁO ĐỘNG ĐỎ
         if severity == 'HIGH' and score > 0.7:
-            print(f"🚨 [CRITICAL - BLOCK IP] Phát hiện tấn công nguy hiểm: {attack_name} (Risk: {score:.2f})")
+            print(f" [CRITICAL - BLOCK IP] Phát hiện tấn công nguy hiểm: {attack_name} (Risk: {score:.2f})")
         
         # TH2: Tấn công TRUNG BÌNH hoặc AI rất tự tin (> 90%) -> CẢNH BÁO VÀNG
         elif severity == 'MEDIUM' or score > 0.9:
-            print(f"⚠️ [WARNING - LOGGING] Nghi ngờ xâm nhập: {attack_name} (Risk: {score:.2f})")
+            print(f"[WARNING - LOGGING] Nghi ngờ xâm nhập: {attack_name} (Risk: {score:.2f})")
         
         # TH3: Các trường hợp còn lại -> THÔNG TIN
         else:
-            print(f"ℹ️ [INFO] Cảnh báo mức thấp: {attack_name} (Risk: {score:.2f})")
+            print(f"[INFO] Cảnh báo mức thấp: {attack_name} (Risk: {score:.2f})")
 
 # --- PHẦN CHẠY THỬ VỚI DỮ LIỆU THẬT ---
 if __name__ == "__main__":
     bot = AlertSystem()
     
-    print("\n⏳ Đang tải một ít dữ liệu thực tế để test (Vui lòng đợi)...")
+    print(" Đang tải một ít dữ liệu thực tế để test (Vui lòng đợi)...")
     # Load dữ liệu thật để có mẫu tấn công chuẩn
     df = pd.read_csv(RAW_DATA_PATH)
     df.columns = df.columns.str.strip() # Sửa lỗi tên cột
     
     # --- CHỌN 3 MẪU ĐIỂN HÌNH ĐỂ TEST ---
-    print("⚙️  Đang chọn lọc các mẫu tấn công...")
+    print("Đang chọn lọc các mẫu tấn công...")
     
     # THAY ĐỔI SỐ LƯỢNG Ở ĐÂY (Ví dụ: Lấy 5 mẫu mỗi loại)
-    n_samples = 5 
+    n_samples = 3
     
-    # 1. Lấy n mẫu DDoS
-    sample_ddos = df[df[LABEL_COLUMN] == 'DDoS'].sample(n_samples)
+    # Lấy mẫu cho tất cả các loại tấn công
+    sample_ddos = df[df[LABEL_COLUMN] == 'DDoS'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'DDoS'])))
+    sample_dos_hulk = df[df[LABEL_COLUMN] == 'DoS Hulk'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'DoS Hulk'])))
+    sample_dos_goldeneye = df[df[LABEL_COLUMN] == 'DoS GoldenEye'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'DoS GoldenEye'])))
+    sample_dos_slowhttptest = df[df[LABEL_COLUMN] == 'DoS Slowhttptest'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'DoS Slowhttptest'])))
+    sample_dos_slowloris = df[df[LABEL_COLUMN] == 'DoS slowloris'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'DoS slowloris'])))
+    sample_bot = df[df[LABEL_COLUMN] == 'Bot'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'Bot'])))
+    sample_portscan = df[df[LABEL_COLUMN] == 'PortScan'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'PortScan'])))
+    sample_ftp_patator = df[df[LABEL_COLUMN] == 'FTP-Patator'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'FTP-Patator'])))
+    sample_ssh_patator = df[df[LABEL_COLUMN] == 'SSH-Patator'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'SSH-Patator'])))
+    sample_web_brute = df[df[LABEL_COLUMN].str.contains('Web Attack.*Brute Force', regex=True, na=False)].sample(n=min(n_samples, len(df[df[LABEL_COLUMN].str.contains('Web Attack.*Brute Force', regex=True, na=False)])))
+    sample_web_sql = df[df[LABEL_COLUMN].str.contains('Web Attack.*Sql Injection', regex=True, na=False)].sample(n=min(n_samples, len(df[df[LABEL_COLUMN].str.contains('Web Attack.*Sql Injection', regex=True, na=False)])))
+    sample_web_xss = df[df[LABEL_COLUMN].str.contains('Web Attack.*XSS', regex=True, na=False)].sample(n=min(n_samples, len(df[df[LABEL_COLUMN].str.contains('Web Attack.*XSS', regex=True, na=False)])))
+    sample_heartbleed = df[df[LABEL_COLUMN] == 'Heartbleed'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'Heartbleed'])))
+    sample_infiltration = df[df[LABEL_COLUMN] == 'Infiltration'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'Infiltration'])))
+    sample_normal = df[df[LABEL_COLUMN] == 'BENIGN'].sample(n=min(n_samples, len(df[df[LABEL_COLUMN] == 'BENIGN'])))
     
-    # 2. Lấy n mẫu PortScan
-    sample_portscan = df[df[LABEL_COLUMN] == 'PortScan'].sample(n_samples)
-    
-    # 3. Lấy n mẫu BENIGN
-    sample_normal = df[df[LABEL_COLUMN] == 'BENIGN'].sample(n_samples)
-
-    # Gộp lại (Tổng cộng sẽ là 15 mẫu)
-    test_batch = pd.concat([sample_ddos, sample_portscan, sample_normal])
+    # Gộp lại tất cả mẫu
+    test_batch = pd.concat([
+        sample_ddos, sample_dos_hulk, sample_dos_goldeneye, sample_dos_slowhttptest,
+        sample_dos_slowloris, sample_bot, sample_portscan, sample_ftp_patator,
+        sample_ssh_patator, sample_web_brute, sample_web_sql, sample_web_xss,
+        sample_heartbleed, sample_infiltration, sample_normal
+    ])
     
     # Tráo đổi ngẫu nhiên thứ tự để nhìn cho sinh động (lúc xanh, lúc đỏ xen kẽ)
     test_batch = test_batch.sample(frac=1).reset_index(drop=True)
 
-    print(f"🚀 Bắt đầu kiểm tra hệ thống với {len(test_batch)} gói tin:\n")
+    print(f" Bắt đầu kiểm tra hệ thống với {len(test_batch)} gói tin:\n")
     
     for i, (_, row) in enumerate(test_batch.iterrows()):
         # Tạo dataframe 1 dòng

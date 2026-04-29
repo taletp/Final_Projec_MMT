@@ -2,6 +2,11 @@ numpy
 pandas
 scikit-learn
 tensorflow
+keras
 joblib
 matplotlib
 streamlit
+plotly
+python-dateutil
+
+#pip install dash dash-bootstrap-components pandas plotly
